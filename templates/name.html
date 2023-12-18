@@ -10,10 +10,11 @@
 <br/>
 <form method="POST">
     {{ form.hidden_tag() }}
-    {{ form.name.label}}
-    {{ form.name() }}
+
+    {{ form.name.label(class="form-label")}}
+    {{ form.name(class="form-control") }}
     <br/>
-    {{ form.submit() }}
+    {{ form.submit(class="btn btn-primary") }}
 </from>
 
 {% endif %}
