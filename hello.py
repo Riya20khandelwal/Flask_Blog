@@ -99,13 +99,36 @@ def update(id):
         try:
             db.session.commit()
             flash("User Updated Successfully!")
-            return render_template("update.html", form=form, name_to_update=name_to_update)
+            return render_template("update.html", form=form, name_to_update=name_to_update, id=id)
         except:
             flash("Error! Looks like there was a problem. Please try again!!")
-            return render_template("update.html", form=form, name_to_update=name_to_update)
+            return render_template("update.html", form=form, name_to_update=name_to_update, id=id)
         
     else:
-        return render_template("update.html", form=form, name_to_update=name_to_update)
+        return render_template("update.html", form=form, name_to_update=name_to_update, id=id)
+    
+@app.route('/delete/<int:id>')
+def delete(id):
+    user_to_delete = Users.query.get_or_404(id)
+    name = None
+    form = UserInfoForm()
+    
+    try:
+        db.session.delete(user_to_delete)
+        db.session.commit()
+        flash("User Deleted Successfully!!")
+
+        our_users = Users.query.order_by(Users.date_added)
+        return render_template('add_user.html',
+                            form=form,
+                            name=name,
+                            our_users=our_users)
+    except:
+        flash("Something Went Wrong!!")
+        return render_template('add_user.html',
+                            form=form,
+                            name=name,
+                            our_users=our_users)
 
 
 
