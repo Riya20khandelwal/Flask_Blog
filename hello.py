@@ -1,11 +1,12 @@
 from flask import Flask, render_template, flash, request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired, Email
+from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError
+from wtforms.validators import DataRequired, EqualTo, Length
 from impdata import secret_key
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 db = SQLAlchemy()
@@ -25,6 +26,18 @@ class Users(db.Model):
     email = db.Column(db.String(50), nullable=False, unique=True)
     favorite_color = db.Column(db.String(50))
     date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    password_hash = db.Column(db.String(250))
+
+    @property
+    def password(self):
+        raise AttributeError("Password is not in readable format!")
+    
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         return '<Name %r>' %self.name
@@ -34,12 +47,19 @@ class Users(db.Model):
 class UserInfoForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired()])
+    password_hash = PasswordField("Password", validators=[DataRequired(), EqualTo('password_hash2', message="Password must match!")])
+    password_hash2 =PasswordField("Confirm Password", validators=[DataRequired()])
     favorite_color = StringField("Favorite Color")
     submit = SubmitField("Submit")
 
 
 class UserForm(FlaskForm):
     name = StringField("Full Name", validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+class PasswordForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired()])
+    password_hash = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 
@@ -73,13 +93,16 @@ def add_user():
     if form.validate_on_submit():
         user = Users.query.filter_by(email=form.email.data).first()
         if user is None:
-            user = Users(name=form.name.data, email=form.email.data, favorite_color=form.favorite_color.data)
+            #Hash the password
+            hashed_pw = generate_password_hash(form.password_hash.data)
+            user = Users(name=form.name.data, email=form.email.data, favorite_color=form.favorite_color.data, password_hash=hashed_pw)
             db.session.add(user)
             db.session.commit()
         name=form.name.data
         form.name.data = ''
         form.email.data = ''
         form.favorite_color.data = ''
+        form.password_hash = ''
         flash("User Added Successfully!")
     our_users = Users.query.order_by(Users.date_added)
     return render_template('add_user.html',
@@ -129,6 +152,34 @@ def delete(id):
                             form=form,
                             name=name,
                             our_users=our_users)
+    
+@app.route('/test_pw', methods=['GET', 'POST'])
+def test_pw():
+    email = None
+    password = None
+    pw_to_check = None
+    passed = None
+
+    form = PasswordForm()
+
+    #Validate Form
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password_hash.data
+
+        form.email.data = ''
+        form.password_hash.data = ''
+
+        pw_to_check = Users.query.filter_by(email=email).first()
+        # Check Hashed Password
+        passed = check_password_hash(pw_to_check.password_hash, password)
+        
+
+        # flash("Form Submitted Successfully!!")
+
+    return render_template('test_pw.html', email=email, 
+           pw_to_check=pw_to_check ,password=password,
+            passed = passed, form=form)
 
 
 
