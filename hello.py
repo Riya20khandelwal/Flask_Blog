@@ -5,8 +5,9 @@ from wtforms.validators import DataRequired, EqualTo, Length
 from impdata import secret_key
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import datetime
+from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
+
 
 app = Flask(__name__)
 db = SQLAlchemy()
@@ -18,6 +19,16 @@ app.config['SECRET_KEY'] = secret_key
 # Initialize Database
 db.init_app(app)
 migrate = Migrate(app, db)
+
+# JSON Thing
+@app.route('/date')
+def get_current_date():
+    fav_thing = {
+        "color" : "Blue",
+        "movie" : "HAHK"
+    }
+    # return {"DATE" : date.today()}
+    return fav_thing
 
 #Create Model
 class Users(db.Model):
