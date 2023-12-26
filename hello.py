@@ -112,6 +112,12 @@ def add_post():
 
     return render_template("add_post.html",
                            form=form)
+
+@app.route('/posts/<int:id>')
+def post(id):
+    post = Posts.query.get_or_404(id)
+    return render_template('post.html', post=post)
+
 @app.route('/posts')
 def posts():
     posts = Posts.query.order_by(Posts.date_posted)
