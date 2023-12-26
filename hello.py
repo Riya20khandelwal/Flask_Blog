@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
+from wtforms.widgets import TextArea
 
 
 app = Flask(__name__)
@@ -53,6 +54,15 @@ class Users(db.Model):
     def __repr__(self):
         return '<Name %r>' %self.name
 
+#  Create a Blog Post model
+class Posts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200))
+    content = db.Column(db.Text)
+    author = db.Column(db.String(100))
+    date_posted = db.Column(db.DateTime, default=datetime.utcnow)
+    slug = db.Column(db.String(255))
+
 # Create a Form Class
     
 class UserInfoForm(FlaskForm):
@@ -72,6 +82,36 @@ class PasswordForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired()])
     password_hash = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Submit")
+
+# Create a Post Form
+class PostForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired()])
+    content = StringField("Content", validators=[DataRequired()], widget=TextArea())
+    author = StringField("Author", validators=[DataRequired()])
+    slug = StringField("Slug", validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+
+#Add Post Page
+@app.route('/add-post', methods=['GET', 'POST'])
+def add_post():
+    form = PostForm()
+
+    if form.validate_on_submit():
+        post = Posts(title=form.title.data, content=form.content.data, author=form.author.data, slug=form.slug.data)
+        
+        form.title.data = ''
+        form.content.data = ''
+        form.author.data = ''
+        form.slug.data = ''
+        
+        db.session.add(post)
+        db.session.commit()
+
+        flash("Blog Post Submitted Successfully!")
+
+    return render_template("add_post.html",
+                           form=form)
 
 
 @app.route('/')
